@@ -133,7 +133,9 @@ while (<STDIN>) {
 			if ($paths{$path}->{disp} eq "exec") {
 				$run = sprintf $paths{$path}->{cmd}, $_;
 				print "Execute $run\n";
-				system($run);
+				if ($real) {
+					system($run);
+				}
 				last;
 			}
 
