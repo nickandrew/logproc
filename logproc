@@ -1,5 +1,7 @@
 #!/usr/bin/perl
 #	@(#) logproc - Process log files
+#	Copyright (C) 2004, Nick Andrew <nick@nick-andrew.net>
+#	Released under the terms of the GNU General Public License
 #
 # Usage: find path -type f -print | logproc ctlfile
 #
