@@ -23,8 +23,6 @@ if ($opt_d) {
 	$real = 0;
 }
 
-my @paths;
-
 my $ctlfile = shift @ARGV;
 
 if (! $ctlfile) {
@@ -38,58 +36,7 @@ $year += 1900;
 my $yyyymm = sprintf "%04d-%02d", $year, $mon;
 my $yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
 
-open(C, "<$ctlfile") || die "ctlfile: $ctlfile: $!";
-
-while (<C>) {
-	chomp;
-
-	next if (/^$/);
-	next if (/^#/);
-
-	my ($regex,$crit,$disp,@rest) = split(/\|/);
-
-	my $ref = {
-		regex => $regex,
-		disp => $disp,
-		target => undef,
-		mtime => undef,
-		cmd => undef,
-	};
-
-	# Parse criteria
-	my ($count,$type) = ($crit =~ /(\d+)(.)/);
-
-	if ($type eq 'y') {
-		$ref->{target} = sprintf("%04d", $year - $count);
-	} elsif ($type eq 'm') {
-		my $y = $year;
-		my $m = $mon - $count;
-
-		while ($m < 1) {
-			$y--;
-			$m += 12;
-		}
-
-		$ref->{target} = sprintf("%04d-%02d", $y, $m);
-	} elsif ($type eq 'd') {
-		my $then = time - 86400 * $count;
-		my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($then);
-		$ref->{mtime} = $then;
-	}
-
-
-	if ($disp eq "discard") {
-	} elsif ($disp eq "exec") {
-		$ref->{cmd} = $rest[0];
-	} else {
-		print STDERR "Unknown disposition: $regex|$crit|$disp\n";
-		next;
-	}
-
-	push(@paths, $ref);
-}
-
-close(C);
+my @paths = parseConfig($ctlfile);
 
 while (<STDIN>) {
 	chomp;
@@ -99,6 +46,72 @@ while (<STDIN>) {
 }
 
 exit(0);
+
+# ---------------------------------------------------------------------------
+# Parse the config file
+# Return output list
+# ---------------------------------------------------------------------------
+
+sub parseConfig {
+	my ($ctlfile) = @_;
+
+	my @paths;
+
+	open(C, "<$ctlfile") || die "ctlfile: $ctlfile: $!";
+
+	while (<C>) {
+		chomp;
+
+		next if (/^$/);
+		next if (/^#/);
+
+		my ($regex,$crit,$disp,@rest) = split(/\|/);
+
+		my $ref = {
+			regex => $regex,
+			disp => $disp,
+			target => undef,
+			mtime => undef,
+			cmd => undef,
+		};
+
+		# Parse criteria
+		my ($count,$type) = ($crit =~ /(\d+)(.)/);
+
+		if ($type eq 'y') {
+			$ref->{target} = sprintf("%04d", $year - $count);
+		} elsif ($type eq 'm') {
+			my $y = $year;
+			my $m = $mon - $count;
+
+			while ($m < 1) {
+				$y--;
+				$m += 12;
+			}
+
+			$ref->{target} = sprintf("%04d-%02d", $y, $m);
+		} elsif ($type eq 'd') {
+			my $then = time - 86400 * $count;
+			my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($then);
+			$ref->{mtime} = $then;
+		}
+
+
+		if ($disp eq "discard") {
+		} elsif ($disp eq "exec") {
+			$ref->{cmd} = $rest[0];
+		} else {
+			print STDERR "Unknown disposition: $regex|$crit|$disp\n";
+			next;
+		}
+
+		push(@paths, $ref);
+	}
+
+	close(C);
+
+	return @paths;
+}
 
 # ---------------------------------------------------------------------------
 # Check a single pathname ($fn) against our set of regular expressions
