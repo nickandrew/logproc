@@ -38,7 +38,6 @@ my $yyyymm = sprintf "%04d-%02d", $year, $mon;
 my $yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
 
 open(C, "<$ctlfile") || die "ctlfile: $ctlfile: $!";
-my $n = 0;
 
 while (<C>) {
 	next if (/^$/);
@@ -82,7 +81,6 @@ while (<C>) {
 }
 
 close(C);
-my $paths = $n;
 
 while (<STDIN>) {
 	chop;
