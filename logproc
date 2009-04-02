@@ -1,19 +1,12 @@
 #!/usr/bin/perl
 #	@(#) logproc - Process log files
-#	Copyright (C) 2004, Nick Andrew <nick@nick-andrew.net>
+#	Copyright (C) 2004,2009 Nick Andrew <nick@nick-andrew.net>
 #	Released under the terms of the GNU General Public License
 #
 # Usage: find path -type f -print | logproc ctlfile
 #
-# $Source$
-# $Revision$
-# $Date$
 
 use strict;
-
-sub usage {
-	die "Usage: logproc [-d] ctlfile";
-}
 
 if ($#ARGV < 0) {
 	usage();
@@ -87,21 +80,33 @@ my $paths = $n;
 while (<STDIN>) {
 	chop;
 	my $fn = $_;
+	checkPath($fn);
+}
+
+exit(0);
+
+# ---------------------------------------------------------------------------
+# Check a single pathname ($fn) against our set of regular expressions
+# ---------------------------------------------------------------------------
+
+sub checkPath {
+	my ($fn) = @_;
+
 #	print "Checking $fn\n";
 	foreach my $path (keys %paths) {
 #		print "Trying: $path\n";
-		if (/^$path/) {
+		if ($fn =~ /^$path/) {
 			my $pathre = $path;
 			my $disp = $paths{$path}->{disp};
-#			print "Match: $_ (disp is $disp)\n";
+#			print "Match: $fn (disp is $disp)\n";
 
 			if ($disp eq "ignore") {
 				last;
 			}
 
-			my @s = stat($_);
+			my @s = stat($fn);
 			if (!@s) {
-				print STDERR "Unable to stat $_: $!\n";
+				print STDERR "Unable to stat $fn : $!\n";
 				last;
 			}
 
@@ -128,15 +133,15 @@ while (<STDIN>) {
 			# All tests passed
 
 			if ($paths{$path}->{disp} eq "discard") {
-				print "Unlink $_\n";
+				print "Unlink $fn\n";
 				if ($real) {
-					unlink($_);
+					unlink($fn);
 				}
 				last;
 			}
 
 			if ($paths{$path}->{disp} eq "exec") {
-				my $run = sprintf $paths{$path}->{cmd}, $_;
+				my $run = sprintf $paths{$path}->{cmd}, $fn;
 				print "Execute $run\n";
 				if ($real) {
 					system($run);
@@ -148,4 +153,13 @@ while (<STDIN>) {
 			last;
 		}
 	}
+
+}
+
+# ---------------------------------------------------------------------------
+# Output a usage message
+# ---------------------------------------------------------------------------
+
+sub usage {
+	die "Usage: logproc [-d] ctlfile";
 }
