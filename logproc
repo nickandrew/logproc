@@ -59,9 +59,7 @@ while (<C>) {
 
 	if ($type eq 'y') {
 		$ref->{target} = sprintf "%04d", $year - $count;
-	}
-
-	if ($type eq 'm') {
+	} elsif ($type eq 'm') {
 		my $y = $year;
 		my $m = $mon - $count;
 		while ($m < 1) {
@@ -69,9 +67,7 @@ while (<C>) {
 			$m += 12;
 		}
 		$ref->{target} = sprintf "%04d-%02d", $y, $m;
-	}
-
-	if ($type eq 'd') {
+	} elsif ($type eq 'd') {
 		my $then = time - 86400 * $count;
 		my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($then);
 		$ref->{mtime} = $then;
@@ -79,11 +75,9 @@ while (<C>) {
 
 
 	if ($disp eq "discard") {
-	}
-	elsif ($disp eq "exec") {
+	} elsif ($disp eq "exec") {
 		$ref->{cmd} = $rest[0];
-	}
-	else {
+	} else {
 		print STDERR "Unknown disposition: $regex|$crit|$disp\n";
 		next;
 	}
