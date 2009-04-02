@@ -22,7 +22,7 @@ if ($opt_d) {
 	$real = 0;
 }
 
-my %paths;
+my @paths;
 
 my $ctlfile = shift @ARGV;
 
@@ -43,13 +43,22 @@ while (<C>) {
 	next if (/^$/);
 	next if (/^#/);
 	chop;
-	my ($path,$crit,$disp,@rest) = split(/\|/);
-	$paths{$path} = { disp=>$disp };
+
+	my ($regex,$crit,$disp,@rest) = split(/\|/);
+
+	my $ref = {
+		regex => $regex,
+		disp => $disp,
+		target => undef,
+		mtime => undef,
+		cmd => undef,
+	};
 
 	# Parse criteria
 	my ($count,$type) = ($crit =~ /(\d+)(.)/);
+
 	if ($type eq 'y') {
-		$paths{$path}->{target} = sprintf "%04d", $year - $count;
+		$ref->{target} = sprintf "%04d", $year - $count;
 	}
 
 	if ($type eq 'm') {
@@ -59,25 +68,27 @@ while (<C>) {
 			$y--;
 			$m += 12;
 		}
-		$paths{$path}->{target} = sprintf "%04d-%02d", $y, $m;
+		$ref->{target} = sprintf "%04d-%02d", $y, $m;
 	}
 
 	if ($type eq 'd') {
 		my $then = time - 86400 * $count;
 		my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($then);
-		$paths{$path}->{mtime} = $then;
+		$ref->{mtime} = $then;
 	}
 
 
 	if ($disp eq "discard") {
-		next;
 	}
-	if ($disp eq "exec") {
-		$paths{$path}->{cmd} = $rest[0];
+	elsif ($disp eq "exec") {
+		$ref->{cmd} = $rest[0];
+	}
+	else {
+		print STDERR "Unknown disposition: $regex|$crit|$disp\n";
 		next;
 	}
 
-	print STDERR "Unknown disposition: $path|$crit|$disp\n";
+	push(@paths, $ref);
 }
 
 close(C);
@@ -97,12 +108,15 @@ exit(0);
 sub checkPath {
 	my ($fn) = @_;
 
-#	print "Checking $fn\n";
-	foreach my $path (keys %paths) {
-#		print "Trying: $path\n";
-		if ($fn =~ /^$path/) {
-			my $pathre = $path;
-			my $disp = $paths{$path}->{disp};
+#	print "\nChecking $fn\n";
+
+	foreach my $ref (@paths) {
+		my $regex = $ref->{regex};
+
+#		print "Trying: $regex\n";
+
+		if ($fn =~ /^$regex/) {
+			my $disp = $ref->{disp};
 #			print "Match: $fn (disp is $disp)\n";
 
 			if ($disp eq "ignore") {
@@ -117,44 +131,46 @@ sub checkPath {
 
 			my $mtime = $s[9];
 
-			if (exists $paths{$pathre}->{mtime}) {
+			if (defined $ref->{mtime}) {
 #				print "Checking mtime: $mtime\n";
-				if ($mtime >= $paths{$pathre}->{mtime}) {
+				if ($mtime >= $ref->{mtime}) {
 					last;
 				}
 			}
 
-			if (exists $paths{$path}->{target}) {
+			if (defined $ref->{target}) {
 				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($s[9]);	# mstr
 				$smon++;
 				$syear += 1900;
 				my $mstr = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $syear, $smon, $smday, $shour, $smin, $ssec;
 #				print "Checking mstr: $mstr\n";
-				if ($mstr ge $paths{$pathre}->{target}) {
-					last;
+				if ($mstr ge $ref->{target}) {
+					next;
 				}
 			}
 
 			# All tests passed
 
-			if ($paths{$path}->{disp} eq "discard") {
+			if ($disp eq "discard") {
 				print "Unlink $fn\n";
+
 				if ($real) {
 					unlink($fn);
 				}
-				last;
-			}
 
-			if ($paths{$path}->{disp} eq "exec") {
-				my $run = sprintf $paths{$path}->{cmd}, $fn;
+			} elsif ($disp eq "exec") {
+				my $run = sprintf($ref->{cmd}, $fn);
 				print "Execute $run\n";
+
 				if ($real) {
 					system($run);
 				}
-				last;
+
+			} else {
+				print "Unknown disposition: $disp\n";
 			}
 
-			# Otherwise, ignore unknown disposition
+			# We matched, so we're done checking.
 			last;
 		}
 	}
