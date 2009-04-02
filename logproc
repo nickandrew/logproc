@@ -9,6 +9,8 @@
 # $Revision$
 # $Date$
 
+use strict;
+
 sub usage {
 	die "Usage: logproc [-d] ctlfile";
 }
@@ -17,7 +19,7 @@ if ($#ARGV < 0) {
 	usage();
 }
 
-$real = 1;
+my $real = 1;
 
 if ($ARGV[0] eq "-d") {
 	$real = 0;
@@ -27,32 +29,33 @@ if ($ARGV[0] eq "-d") {
 my %paths;
 
 select(STDOUT); $| = 1;
-$ctlfile = $ARGV[0];
+my $ctlfile = $ARGV[0];
 
-($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
+my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 $mon++;
 $year += 1900;
-$yyyymm = sprintf "%04d-%02d", $year, $mon;
-$yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
+my $yyyymm = sprintf "%04d-%02d", $year, $mon;
+my $yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
 
 open(C, "<$ctlfile") || die "ctlfile: $ctlfile: $!";
-$n = 0;
+my $n = 0;
+
 while (<C>) {
 	next if (/^$/);
 	next if (/^#/);
 	chop;
-	($path,$crit,$disp,@rest) = split(/\|/);
+	my ($path,$crit,$disp,@rest) = split(/\|/);
 	$paths{$path} = { disp=>$disp };
 
 	# Parse criteria
-	($count,$type) = ($crit =~ /(\d+)(.)/);
+	my ($count,$type) = ($crit =~ /(\d+)(.)/);
 	if ($type eq 'y') {
 		$paths{$path}->{target} = sprintf "%04d", $year - $count;
 	}
 
 	if ($type eq 'm') {
-		$y = $year;
-		$m = $mon - $count;
+		my $y = $year;
+		my $m = $mon - $count;
 		while ($m < 1) {
 			$y--;
 			$m += 12;
@@ -79,7 +82,7 @@ while (<C>) {
 }
 
 close(C);
-$paths = $n;
+my $paths = $n;
 
 while (<STDIN>) {
 	chop;
@@ -88,15 +91,15 @@ while (<STDIN>) {
 	foreach my $path (keys %paths) {
 #		print "Trying: $path\n";
 		if (/^$path/) {
-			$pathre = $path;
-			$disp = $paths{$path}->{disp};
+			my $pathre = $path;
+			my $disp = $paths{$path}->{disp};
 #			print "Match: $_ (disp is $disp)\n";
 
 			if ($disp eq "ignore") {
 				last;
 			}
 
-			@s = stat($_);
+			my @s = stat($_);
 			if (!@s) {
 				print STDERR "Unable to stat $_: $!\n";
 				last;
@@ -112,10 +115,10 @@ while (<STDIN>) {
 			}
 
 			if (exists $paths{$path}->{target}) {
-				($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($s[9]);	# mstr
+				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($s[9]);	# mstr
 				$smon++;
 				$syear += 1900;
-				$mstr = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $syear, $smon, $smday, $shour, $smin, $ssec;
+				my $mstr = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $syear, $smon, $smday, $shour, $smin, $ssec;
 #				print "Checking mstr: $mstr\n";
 				if ($mstr ge $paths{$pathre}->{target}) {
 					last;
@@ -133,7 +136,7 @@ while (<STDIN>) {
 			}
 
 			if ($paths{$path}->{disp} eq "exec") {
-				$run = sprintf $paths{$path}->{cmd}, $_;
+				my $run = sprintf $paths{$path}->{cmd}, $_;
 				print "Execute $run\n";
 				if ($real) {
 					system($run);
