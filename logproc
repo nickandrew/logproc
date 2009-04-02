@@ -12,7 +12,8 @@ use Getopt::Std qw(getopts);
 
 use vars qw($opt_d);
 
-select(STDOUT); $| = 1;
+select(STDOUT);
+$| = 1;
 
 getopts('d');
 
@@ -32,7 +33,7 @@ if (! $ctlfile) {
 }
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
-$mon++;
+$mon ++;
 $year += 1900;
 my $yyyymm = sprintf "%04d-%02d", $year, $mon;
 my $yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
@@ -40,9 +41,10 @@ my $yyyymmdd = sprintf "%04d-%02d-%02d", $year, $mon, $mday;
 open(C, "<$ctlfile") || die "ctlfile: $ctlfile: $!";
 
 while (<C>) {
+	chomp;
+
 	next if (/^$/);
 	next if (/^#/);
-	chop;
 
 	my ($regex,$crit,$disp,@rest) = split(/\|/);
 
@@ -58,15 +60,17 @@ while (<C>) {
 	my ($count,$type) = ($crit =~ /(\d+)(.)/);
 
 	if ($type eq 'y') {
-		$ref->{target} = sprintf "%04d", $year - $count;
+		$ref->{target} = sprintf("%04d", $year - $count);
 	} elsif ($type eq 'm') {
 		my $y = $year;
 		my $m = $mon - $count;
+
 		while ($m < 1) {
 			$y--;
 			$m += 12;
 		}
-		$ref->{target} = sprintf "%04d-%02d", $y, $m;
+
+		$ref->{target} = sprintf("%04d-%02d", $y, $m);
 	} elsif ($type eq 'd') {
 		my $then = time - 86400 * $count;
 		my($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime($then);
@@ -88,7 +92,8 @@ while (<C>) {
 close(C);
 
 while (<STDIN>) {
-	chop;
+	chomp;
+
 	my $fn = $_;
 	checkPath($fn);
 }
@@ -113,6 +118,7 @@ sub checkPath {
 #		print "Trying: $regex\n";
 
 		if ($fn =~ /^$regex/) {
+
 			my $disp = $ref->{disp};
 #			print "Match: $fn (disp is $disp)\n";
 
@@ -138,8 +144,9 @@ sub checkPath {
 			}
 
 			if (defined $ref->{target}) {
-				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($mtime);	# mstr
-				$smon++;
+				# Convert mtime to ISO8601 format
+				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($mtime);
+				$smon ++;
 				$syear += 1900;
 				my $mstr = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $syear, $smon, $smday, $shour, $smin, $ssec;
 #				print "Checking mstr: $mstr\n";
