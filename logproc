@@ -104,6 +104,9 @@ sub checkPath {
 
 #	print "\nChecking $fn\n";
 
+	# File mtime (filled in later)
+	my $mtime;
+
 	foreach my $ref (@paths) {
 		my $regex = $ref->{regex};
 
@@ -117,13 +120,15 @@ sub checkPath {
 				last;
 			}
 
-			my @s = stat($fn);
-			if (!@s) {
-				print STDERR "Unable to stat $fn : $!\n";
-				last;
-			}
+			if (! $mtime) {
+				my @s = stat($fn);
+				if (!@s) {
+					print STDERR "Unable to stat $fn : $!\n";
+					return;
+				}
 
-			my $mtime = $s[9];
+				$mtime = $s[9];
+			}
 
 			if (defined $ref->{mtime}) {
 #				print "Checking mtime: $mtime\n";
@@ -133,7 +138,7 @@ sub checkPath {
 			}
 
 			if (defined $ref->{target}) {
-				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($s[9]);	# mstr
+				my ($ssec,$smin,$shour,$smday,$smon,$syear,@srest) = localtime($mtime);	# mstr
 				$smon++;
 				$syear += 1900;
 				my $mstr = sprintf "%04d-%02d-%02d %02d:%02d:%02d", $syear, $smon, $smday, $shour, $smin, $ssec;
