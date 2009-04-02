@@ -3,26 +3,33 @@
 #	Copyright (C) 2004,2009 Nick Andrew <nick@nick-andrew.net>
 #	Released under the terms of the GNU General Public License
 #
-# Usage: find path -type f -print | logproc ctlfile
+# Usage: find path -type f -print | logproc [-d] ctlfile
 #
 
 use strict;
 
-if ($#ARGV < 0) {
-	usage();
-}
+use Getopt::Std qw(getopts);
+
+use vars qw($opt_d);
+
+select(STDOUT); $| = 1;
+
+getopts('d');
 
 my $real = 1;
 
-if ($ARGV[0] eq "-d") {
+if ($opt_d) {
 	$real = 0;
-	shift @ARGV;
 }
 
 my %paths;
 
-select(STDOUT); $| = 1;
-my $ctlfile = $ARGV[0];
+my $ctlfile = shift @ARGV;
+
+if (! $ctlfile) {
+	usage();
+	die "Need to specify control file"
+}
 
 my ($sec,$min,$hour,$mday,$mon,$year,$wday,$yday,$isdst) = localtime(time);
 $mon++;
